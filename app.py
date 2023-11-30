@@ -32,6 +32,7 @@ def search_artist(artist_name, selected_tab):
         results = make_request(search_url, params)
         df = produce_dataframe(results, 'artists')
         st.table(df)
+        st.success("Thank you for using ParaMusic")
 
     elif selected_tab == "Search Effectiveness Bar Chart":
         search_url = f"{base_url}artist/"
@@ -53,46 +54,10 @@ def search_artist(artist_name, selected_tab):
         st.caption("How effective the search result is to the desired term")
 
     elif selected_tab == "Filtered Data":
-        country_filter = st.text_input("Filter by Country", "")
-        submit_button = st.button('Apply Filter')
+        # We need the logic for this
 
-        if submit_button and country_filter:
-            search_url = f"{base_url}area/"
-            params = {'query': country_filter, 'fmt': 'json'}
-            country_results = make_request(search_url, params)
-
-            if country_results:
-                country_df = [{"Country": country.get('name', 'N/A'),
-                               "Latitude": country.get('coordinates', {}).get('latitude', 'N/A'),
-                               "Longitude": country.get('coordinates', {}).get('longitude', 'N/A')} for country in
-                              country_results['areas']]
-                country_df = [entry for entry in country_df if
-                              all(entry.values())]  # Remove entries with missing latitude or longitude
-                if country_df:
-                    fig = px.scatter_geo(country_df, locations="Country", locationmode="country names",
-                                         color="Latitude", size="Longitude",
-                                         hover_name="Country", size_max=40, template="plotly",
-                                         projection="natural earth")
-                    st.plotly_chart(fig)
-                else:
-                    st.warning("No valid coordinates found for the entered country.")
-            else:
-                st.warning("Country information not found.")
-
-    elif selected_tab == "Artist Information":
-        artist_id = st.text_input("Enter Artist ID", "")
-        submit_button = st.button('Get Information')
-
-        if submit_button and artist_id:
-            search_url = f"{base_url}artist/{artist_id}"
-            params = {'fmt': 'json'}
-            results = make_request(search_url, params)
-            if results:
-                    st.write(f"Name: {results.get('name', 'N/A')}")
-                    st.write(f"Country: {results.get('country', 'N/A')}")
-                # Add more information as needed
-            else:
-                st.warning("Artist information not found.")
+    elif selected_tab == "Song Lengths":
+        st.warning("Please select 'songs' as the search type to get song lengths")
 
 def search_album(album_name, selected_tab):
     if selected_tab == "Raw MusicBrainz API Data":
@@ -101,6 +66,7 @@ def search_album(album_name, selected_tab):
         results = make_request(search_url, params)
         df = produce_dataframe(results, 'releases')
         st.table(df)
+        st.success("Here are the results for your search")
 
     elif selected_tab == "Search Effectiveness Bar Chart":
         search_url = f"{base_url}artist/"
@@ -122,37 +88,11 @@ def search_album(album_name, selected_tab):
         st.caption("How effective the search result is to the desired term")
 
     elif selected_tab == "Filtered Data":
-        country_filter = st.text_input("Filter by Country", "")
-        submit_button = st.button('Apply Filter')
+        # We need logic for filtered data
 
-        if submit_button and country_filter:
-            search_url = f"{base_url}area/"
-            params = {'query': country_filter, 'fmt': 'json'}
-            country_results = make_request(search_url, params)
-
-            print("Country Results:", country_results)  # Print the results for debugging
-
-            if country_results and 'areas' in country_results:
-                country_df = [{"Country": country.get('name', 'N/A'),
-                               "Latitude": country.get('coordinates', {}).get('latitude', 'N/A'),
-                               "Longitude": country.get('coordinates', {}).get('longitude', 'N/A')} for country in
-                              country_results['areas']]
-                country_df = [entry for entry in country_df if
-                              all(entry.values())]  # Remove entries with missing latitude or longitude
-                if country_df:
-                    fig = px.scatter_geo(country_df, locations="Country", locationmode="country names",
-                                         color="Latitude", size="Longitude",
-                                         hover_name="Country", size_max=40, template="plotly",
-                                         projection="natural earth")
-                    st.plotly_chart(fig)
-                else:
-                    st.warning("No valid coordinates found for the entered country.")
-            else:
-                st.warning("Country information not found.")
-
-    elif selected_tab == "Release Events":
-        # Add logic for filtered data
-        pass
+    elif selected_tab == "song lengths":
+        st.warning("Please select 'songs' as the search type to get song lengths")
+        
 
 def search_song(song_name, selected_tab):
     if selected_tab == "Raw MusicBrainz API Data":
@@ -184,9 +124,23 @@ def search_song(song_name, selected_tab):
     elif selected_tab == "Filtered Data":
         # Add logic for filtered Data
         pass
-    elif selected_tab == "Length of songs":
-        # Add logic for filtered data
-        pass
+    elif selected_tab == "song lengths":
+        #Logic is not working for this: Can anyone help in figuring it out?
+        search_url = f"{base_url}recording/"
+        params = {'query': song_name, 'fmt': 'json'}
+        results = make_request(search_url, params)
+        df = produce_dataframe(results, 'recordings')
+
+        if df is not None:
+            # Extract the "length" values
+            lengths = df['length']
+
+            # Create a scatterplot of song lengths
+            fig = px.scatter(x=range(len(lengths)), y=lengths, labels={'x': 'Entry Number', 'y': 'Song Length'})
+            st.subheader("Song Length (In Milliseconds Scatterplot")
+            st.plotly_chart(fig)
+        else:
+            st.warning("No data available for the selected song.")
 
 def main():
     st.title("ParaMusic")
@@ -196,6 +150,11 @@ def main():
     st.sidebar.subheader("Search Options")
     selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Artist Information", "Search Effectiveness Bar Chart"])
 
+    if search_type == "Artist":
+        artist_default = st.checkbox('Do you want to search for the current Number 1 Artist Globally: Taylor Swift?')
+        if artist_default:
+            search_artist("Taylor Swift", selected_tab) 
+            
     if st.button("Search"):
         if search_type == "Artist":
             search_artist(search_query, selected_tab)
