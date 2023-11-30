@@ -1,4 +1,5 @@
 import requests
+import pandas as pd
 import streamlit as st
 import plotly.express as px
 
@@ -16,16 +17,15 @@ def display_results(results, result_type):
     if results and result_type in results:
         data = results[result_type]
         if data:
-            st.table(data)
+            df = pd.DataFrame(data)
+            df.iloc[0] = df.iloc[0].str.strip()
+            st.table(df)
         else:
             st.warning(f"No {result_type}s found.")
     else:
         st.warning(f"No {result_type}s found.")
 
-def search_artist(artist_name):
-    st.sidebar.subheader("Search Options")
-    selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Artist Information"])
-
+def search_artist(artist_name, selected_tab):
     if selected_tab == "Raw MusicBrainz API Data":
         search_url = f"{base_url}artist/"
         params = {'query': artist_name, 'fmt': 'json'}
@@ -68,16 +68,13 @@ def search_artist(artist_name):
             params = {'fmt': 'json'}
             results = make_request(search_url, params)
             if results:
-                st.write(f"Name: {results.get('name', 'N/A')}")
-                st.write(f"Country: {results.get('country', 'N/A')}")
+                    st.write(f"Name: {results.get('name', 'N/A')}")
+                    st.write(f"Country: {results.get('country', 'N/A')}")
                 # Add more information as needed
             else:
                 st.warning("Artist information not found.")
 
-def search_album(album_name):
-    st.sidebar.subheader("Search options")
-    selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Release Events"])
-
+def search_album(album_name, selected_tab):
     if selected_tab == "Raw MusicBrainz API Data":
         search_url = f"{base_url}release/"
         params = {'query': album_name, 'fmt': 'json'}
@@ -116,10 +113,7 @@ def search_album(album_name):
         # Add logic for filtered data
         pass
 
-def search_song(song_name):
-    st.sidebar.subheader("Search options")
-    selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Length of songs"])
-
+def search_song(song_name, selected_tab):
     if selected_tab == "Raw MusicBrainz API Data":
         search_url = f"{base_url}recording/"
         params = {'query': song_name, 'fmt': 'json'}
@@ -137,13 +131,16 @@ def main():
     search_query = st.text_input("Enter a song, album, or artist name")
     search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
 
+    st.sidebar.subheader("Search Options")
+    selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Artist Information"])
+
     if st.button("Search"):
         if search_type == "Artist":
-            search_artist(search_query)
+            search_artist(search_query, selected_tab)
         elif search_type == "Album":
-            search_album(search_query)
+            search_album(search_query, selected_tab)
         elif search_type == "Song":
-            search_song(search_query)
+            search_song(search_query, selected_tab)
 
-if _name_ == "_main_":
-    main()
+
+main()
