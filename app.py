@@ -13,13 +13,13 @@ def make_request(search_url, params):
         st.error(f"Error: {response.status_code}")
         return None
 
-def display_results(results, result_type):
+def produce_dataframe(results, result_type):
     if results and result_type in results:
         data = results[result_type]
         if data:
             df = pd.DataFrame(data)
-            df.iloc[0] = df.iloc[0].str.strip()
-            st.table(df)
+            df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+            return(df)
         else:
             st.warning(f"No {result_type}s found.")
     else:
@@ -30,7 +30,27 @@ def search_artist(artist_name, selected_tab):
         search_url = f"{base_url}artist/"
         params = {'query': artist_name, 'fmt': 'json'}
         results = make_request(search_url, params)
-        display_results(results, 'artists')
+        df = produce_dataframe(results, 'artists')
+        st.table(df)
+
+    elif selected_tab == "Search Effectiveness Bar Chart":
+        search_url = f"{base_url}artist/"
+        params = {'query': artist_name, 'fmt': 'json'}
+        results = make_request(search_url, params)
+        df = produce_dataframe(results, 'artists')
+
+        # Extract the "score" values
+        scores = df['score']
+
+        # Create a table with the scores
+        table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
+        score_table = pd.DataFrame(table_data)
+
+        # Create a bar table
+        fig = px.bar(score_table, x="Index", y="Score (in %)")
+        st.subheader("Effectiveness Bar Chart")
+        st.plotly_chart(fig)
+        st.caption("How effective the search result is to the desired term")
 
     elif selected_tab == "Filtered Data":
         country_filter = st.text_input("Filter by Country", "")
@@ -79,7 +99,28 @@ def search_album(album_name, selected_tab):
         search_url = f"{base_url}release/"
         params = {'query': album_name, 'fmt': 'json'}
         results = make_request(search_url, params)
-        display_results(results, 'releases')
+        df = produce_dataframe(results, 'releases')
+        st.table(df)
+
+    elif selected_tab == "Search Effectiveness Bar Chart":
+        search_url = f"{base_url}artist/"
+        params = {'query': album_name, 'fmt': 'json'}
+        results = make_request(search_url, params)
+        df = produce_dataframe(results, 'artists')
+
+        # Extract the "score" values
+        scores = df['score']
+
+        # Create a table with the scores
+        table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
+        score_table = pd.DataFrame(table_data)
+
+        # Create a bar table
+        fig = px.bar(score_table, x="Index", y="Score (in %)")
+        st.subheader("Effectiveness Bar Chart")
+        st.plotly_chart(fig)
+        st.caption("How effective the search result is to the desired term")
+
     elif selected_tab == "Filtered Data":
         country_filter = st.text_input("Filter by Country", "")
         submit_button = st.button('Apply Filter')
@@ -118,7 +159,28 @@ def search_song(song_name, selected_tab):
         search_url = f"{base_url}recording/"
         params = {'query': song_name, 'fmt': 'json'}
         results = make_request(search_url, params)
-        display_results(results, 'recordings')
+        df = produce_dataframe(results, 'recordings')
+        st.table(df)
+
+    elif selected_tab == "Search Effectiveness Bar Chart":
+        search_url = f"{base_url}artist/"
+        params = {'query': song_name, 'fmt': 'json'}
+        results = make_request(search_url, params)
+        df = produce_dataframe(results, 'artists')
+
+        # Extract the "score" values
+        scores = df['score']
+
+        # Create a table with the scores
+        table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
+        score_table = pd.DataFrame(table_data)
+
+        # Create a bar table
+        fig = px.bar(score_table, x="Index", y="Score (in %)")
+        st.subheader("Effectiveness Bar Chart")
+        st.plotly_chart(fig)
+        st.caption("How effective the search result is to the desired term")
+
     elif selected_tab == "Filtered Data":
         # Add logic for filtered Data
         pass
@@ -132,7 +194,7 @@ def main():
     search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
 
     st.sidebar.subheader("Search Options")
-    selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Artist Information"])
+    selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Artist Information", "Search Effectiveness Bar Chart"])
 
     if st.button("Search"):
         if search_type == "Artist":
