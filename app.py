@@ -13,177 +13,85 @@ def make_request(search_url, params):
         st.error(f"Error: {response.status_code}")
         return None
 
-def produce_dataframe(results, result_type):
+def create_df(results, result_type):
     if results and result_type in results:
         data = results[result_type]
         if data:
-            df = pd.DataFrame(data)
-            df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+            df = pd.json_normalize(data)
+            #df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x) #Remove extra whitespace but does not work on nested objects.
             return(df)
         else:
-            st.warning(f"No {result_type}s found.")
+            st.warning(f"No {result_type} found.")
     else:
-        st.warning(f"No {result_type}s found.")
+        st.warning(f"No {result_type} found.")
+
+def populate_df(type, media_name):
+    search_url = f"{base_url}{type}/"
+    params = {f'query': {media_name}, 'fmt': 'json'}
+    results = make_request(search_url, params)
+    df = create_df(results, f'{type}s')
+    return(df)
+
+def display_two_tables(df):
+    st.subheader("Interactive data table ")
+    st.dataframe(df)
+
+    enable_table = st.checkbox('Do you want a static table?')
+    st.caption("(A static table includes expanded nested objects)")
+    if enable_table:
+        st.subheader("Static table of the data")
+        st.table(df)
+
+def gen_score_chart(df):
+    # Extract the "score" values
+    scores = df['score']
+
+    # Create a table with the scores
+    table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
+    score_table = pd.DataFrame(table_data)
+
+    # Create a bar table
+    fig = px.bar(score_table, x="Index", y="Score (in %)")
+    st.subheader("Effectiveness Bar Chart")
+    st.plotly_chart(fig)
+    st.caption("How effective the search result is to the desired term")
 
 def search_artist(artist_name, selected_tab):
+    type = "artist"
     if selected_tab == "Raw MusicBrainz API Data":
-        search_url = f"{base_url}artist/"
-        params = {'query': artist_name, 'fmt': 'json'}
-        results = make_request(search_url, params)
-        df = produce_dataframe(results, 'artists')
-        st.table(df)
+        df = populate_df(type, artist_name)
+
+        display_two_tables(df)
 
     elif selected_tab == "Search Effectiveness Bar Chart":
-        search_url = f"{base_url}artist/"
-        params = {'query': artist_name, 'fmt': 'json'}
-        results = make_request(search_url, params)
-        df = produce_dataframe(results, 'artists')
+        df = populate_df(type, artist_name)
 
-        # Extract the "score" values
-        scores = df['score']
-
-        # Create a table with the scores
-        table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
-        score_table = pd.DataFrame(table_data)
-
-        # Create a bar table
-        fig = px.bar(score_table, x="Index", y="Score (in %)")
-        st.subheader("Effectiveness Bar Chart")
-        st.plotly_chart(fig)
-        st.caption("How effective the search result is to the desired term")
-
-    elif selected_tab == "Filtered Data":
-        country_filter = st.text_input("Filter by Country", "")
-        submit_button = st.button('Apply Filter')
-
-        if submit_button and country_filter:
-            search_url = f"{base_url}area/"
-            params = {'query': country_filter, 'fmt': 'json'}
-            country_results = make_request(search_url, params)
-
-            if country_results:
-                country_df = [{"Country": country.get('name', 'N/A'),
-                               "Latitude": country.get('coordinates', {}).get('latitude', 'N/A'),
-                               "Longitude": country.get('coordinates', {}).get('longitude', 'N/A')} for country in
-                              country_results['areas']]
-                country_df = [entry for entry in country_df if
-                              all(entry.values())]  # Remove entries with missing latitude or longitude
-                if country_df:
-                    fig = px.scatter_geo(country_df, locations="Country", locationmode="country names",
-                                         color="Latitude", size="Longitude",
-                                         hover_name="Country", size_max=40, template="plotly",
-                                         projection="natural earth")
-                    st.plotly_chart(fig)
-                else:
-                    st.warning("No valid coordinates found for the entered country.")
-            else:
-                st.warning("Country information not found.")
-
-    elif selected_tab == "Artist Information":
-        artist_id = st.text_input("Enter Artist ID", "")
-        submit_button = st.button('Get Information')
-
-        if submit_button and artist_id:
-            search_url = f"{base_url}artist/{artist_id}"
-            params = {'fmt': 'json'}
-            results = make_request(search_url, params)
-            if results:
-                    st.write(f"Name: {results.get('name', 'N/A')}")
-                    st.write(f"Country: {results.get('country', 'N/A')}")
-                # Add more information as needed
-            else:
-                st.warning("Artist information not found.")
+        gen_score_chart(df)
 
 def search_album(album_name, selected_tab):
+    type = "release"
     if selected_tab == "Raw MusicBrainz API Data":
-        search_url = f"{base_url}release/"
-        params = {'query': album_name, 'fmt': 'json'}
-        results = make_request(search_url, params)
-        df = produce_dataframe(results, 'releases')
-        st.table(df)
+        df = populate_df(type, album_name)
+
+        display_two_tables(df)
 
     elif selected_tab == "Search Effectiveness Bar Chart":
-        search_url = f"{base_url}artist/"
-        params = {'query': album_name, 'fmt': 'json'}
-        results = make_request(search_url, params)
-        df = produce_dataframe(results, 'artists')
+        df = populate_df(type, album_name)
 
-        # Extract the "score" values
-        scores = df['score']
-
-        # Create a table with the scores
-        table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
-        score_table = pd.DataFrame(table_data)
-
-        # Create a bar table
-        fig = px.bar(score_table, x="Index", y="Score (in %)")
-        st.subheader("Effectiveness Bar Chart")
-        st.plotly_chart(fig)
-        st.caption("How effective the search result is to the desired term")
-
-    elif selected_tab == "Filtered Data":
-        country_filter = st.text_input("Filter by Country", "")
-        submit_button = st.button('Apply Filter')
-
-        if submit_button and country_filter:
-            search_url = f"{base_url}area/"
-            params = {'query': country_filter, 'fmt': 'json'}
-            country_results = make_request(search_url, params)
-
-            print("Country Results:", country_results)  # Print the results for debugging
-
-            if country_results and 'areas' in country_results:
-                country_df = [{"Country": country.get('name', 'N/A'),
-                               "Latitude": country.get('coordinates', {}).get('latitude', 'N/A'),
-                               "Longitude": country.get('coordinates', {}).get('longitude', 'N/A')} for country in
-                              country_results['areas']]
-                country_df = [entry for entry in country_df if
-                              all(entry.values())]  # Remove entries with missing latitude or longitude
-                if country_df:
-                    fig = px.scatter_geo(country_df, locations="Country", locationmode="country names",
-                                         color="Latitude", size="Longitude",
-                                         hover_name="Country", size_max=40, template="plotly",
-                                         projection="natural earth")
-                    st.plotly_chart(fig)
-                else:
-                    st.warning("No valid coordinates found for the entered country.")
-            else:
-                st.warning("Country information not found.")
-
-    elif selected_tab == "Release Events":
-        # Add logic for filtered data
-        pass
+        gen_score_chart(df)
 
 def search_song(song_name, selected_tab):
+    type = "recording"
     if selected_tab == "Raw MusicBrainz API Data":
-        search_url = f"{base_url}recording/"
-        params = {'query': song_name, 'fmt': 'json'}
-        results = make_request(search_url, params)
-        df = produce_dataframe(results, 'recordings')
-        st.table(df)
+        df = populate_df(type, song_name)
+
+        display_two_tables(df)
 
     elif selected_tab == "Search Effectiveness Bar Chart":
-        search_url = f"{base_url}artist/"
-        params = {'query': song_name, 'fmt': 'json'}
-        results = make_request(search_url, params)
-        df = produce_dataframe(results, 'artists')
+        df = populate_df(type, song_name)
 
-        # Extract the "score" values
-        scores = df['score']
+        gen_score_chart(df)
 
-        # Create a table with the scores
-        table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
-        score_table = pd.DataFrame(table_data)
-
-        # Create a bar table
-        fig = px.bar(score_table, x="Index", y="Score (in %)")
-        st.subheader("Effectiveness Bar Chart")
-        st.plotly_chart(fig)
-        st.caption("How effective the search result is to the desired term")
-
-    elif selected_tab == "Filtered Data":
-        # Add logic for filtered Data
-        pass
     elif selected_tab == "Length of songs":
         # Add logic for filtered data
         pass
@@ -194,15 +102,35 @@ def main():
     search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
 
     st.sidebar.subheader("Search Options")
-    selected_tab = st.sidebar.radio("Select Tab", ["Raw MusicBrainz API Data", "Filtered Data", "Artist Information", "Search Effectiveness Bar Chart"])
+    selected_tab = st.sidebar.radio("Select Tab", ["Filtered Data", "Raw MusicBrainz API Data", "Search Effectiveness Bar Chart"])
+    search = st.button("Search") #The button is just for design so users feel comfortable and know the next steps after inputting text.
 
-    if st.button("Search"):
-        if search_type == "Artist":
-            search_artist(search_query, selected_tab)
-        elif search_type == "Album":
-            search_album(search_query, selected_tab)
-        elif search_type == "Song":
-            search_song(search_query, selected_tab)
+    if (selected_tab == "Raw MusicBrainz API Data" or selected_tab ==  "Search Effectiveness Bar Chart"):
+        if search_query: # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
+            if search_type == "Artist":
+                search_artist(search_query, selected_tab)
+            elif search_type == "Album":
+                search_album(search_query, selected_tab)
+            elif search_type == "Song":
+                search_song(search_query, selected_tab)
 
+    df = pd.DataFrame()
+    if (selected_tab == "Filtered Data"):
+        if search_query: # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
+            if search_type == "Artist":
+                df = populate_df('artist', search_query)
+            elif search_type == "Album":
+                df = populate_df('release', search_query)
+            elif search_type == "Song":
+                df = populate_df('recording', search_query)
+
+
+        selected_options = st.multiselect('Select Columns to be Displayed', options=df.columns)
+
+        # Filter the dataframe based on the selected options
+        filtered_df = df[selected_options]
+
+        if selected_options:
+            display_two_tables(filtered_df)
 
 main()
