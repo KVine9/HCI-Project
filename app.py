@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import streamlit as st
+from streamlit_option_menu import option_menu
 import plotly.express as px
 
 base_url = "https://musicbrainz.org/ws/2/"
@@ -171,8 +172,20 @@ def main():
     search_query = st.text_input("Enter a song, album, or artist name")
     search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
 
-    st.sidebar.subheader("Search Options")
-    selected_tab = st.sidebar.radio("Select Tab", ["Filtered Data", "Raw MusicBrainz API Data","Display Media Map", "Search Effectiveness Bar Chart"])
+     with st.sidebar:
+         # Sidebar customization -- Let's try doing it horizontal if possible? If not we can use CSS styling to make it look better
+        selected_tab = option_menu(
+            menu_title="Main Menu",
+            options=["Filtered Data", "Raw MusicBrainz API Data","Display Media Map", "Search Effectiveness Bar Chart", "Song Length Scatterplot"],
+            default_index=0,
+            styles={
+                "container": {"padding": "0!important", "background-color": "#8a9a5b"},
+                "icon": {"color": "black", "font-size": "20px"},
+                "nav-link": {"font-size": "25px", "text-align": "left", "margin": "5px", "--hover-color": "#eee"},
+                "nav-link-selected": {"background-color": "grey"},
+            }
+        )
+
     search = st.button("Search") #The button is just for design so users feel comfortable and know the next steps after inputting text.
 
     if (selected_tab == "Raw MusicBrainz API Data" or selected_tab ==  "Search Effectiveness Bar Chart" or selected_tab ==  "Display Media Map"):
