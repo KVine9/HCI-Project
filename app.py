@@ -207,7 +207,7 @@ def main():
             if search_type == "Artist":
                 st.error("Scatterplot does not work on Artist Names, please set search type to song")
             elif search_type == "Album":
-                st.error("Scatterplot does not work on Artist Names, please set search type to song")
+                st.error("Scatterplot does not work on Album Names, please set search type to song")
             elif search_type == "Song":
                 df = populate_df('recording', search_query)
                 num_results = st.slider("Select the number of results to display", 1, len(df), len(df))
