@@ -56,12 +56,58 @@ def gen_score_chart(df):
     st.plotly_chart(fig)
     st.caption("How effective the search result is to the desired term")
 
+def gen_media_map(df):
+    country_coordinates = {
+        'US': (37.09024, -95.712891),
+        'JP': (36.204824, 138.252924),
+        'GB': (55.378051, -3.435973),
+        'DE': (51.165691, 10.451526),
+        'FR': (46.227638, 2.213749),
+        'BE': (50.503887, 4.469936),
+        'IT': (41.87194, 12.56738),
+        'CA': (56.130366, -106.34677),
+        'SE': (60.128161, 18.643501),
+        'FI': (61.92411, 25.748151),
+        'NL': (52.132633, 5.291266),
+        'ES': (40.463667, -3.74922),
+        'AU': (-25.274398, 133.77513),
+        'RU': (61.52401, 105.318756),
+        'BR': (-14.235004, -51.92528),
+        'KR': (35.907757, 127.766922),
+        'AT': (47.516231, 14.550072),
+        'PL': (51.919438, 19.145136),
+        'CH': (46.818188, 8.227512),
+        'DK': (56.26392, 9.501785),
+        'GR': (39.074208, 21.824312),
+        'NO': (60.472024, 8.468946),
+        'EE': (58.595272, 25.013607),
+        'LV': (56.879635, 24.603189),
+        'CZ': (49.817492, 15.472962)
+    }
+
+    # Create a new DataFrame with country name, latitude, and longitude
+    new_df = pd.DataFrame(columns=['country', 'latitude', 'longitude'])
+
+    for country_code in df['country']:
+        if country_code in country_coordinates:
+            country_name = country_coordinates[country_code]
+            latitude, longitude = country_coordinates[country_code]
+            new_row = pd.DataFrame([[country_name, latitude, longitude]], columns=['country', 'latitude', 'longitude'])
+            new_df = pd.concat([new_df, new_row], ignore_index=True)
+
+    st.map(new_df)
+
 def search_artist(artist_name, selected_tab):
     type = "artist"
     if selected_tab == "Raw MusicBrainz API Data":
         df = populate_df(type, artist_name)
 
         display_two_tables(df)
+
+    elif selected_tab == "Display Media Map":
+        df = populate_df(type, artist_name)
+
+        gen_media_map(df)
 
     elif selected_tab == "Search Effectiveness Bar Chart":
         df = populate_df(type, artist_name)
@@ -75,6 +121,11 @@ def search_album(album_name, selected_tab):
 
         display_two_tables(df)
 
+    elif selected_tab == "Display Media Map":
+        df = populate_df(type, album_name)
+
+        gen_media_map(df)
+
     elif selected_tab == "Search Effectiveness Bar Chart":
         df = populate_df(type, album_name)
 
@@ -86,6 +137,9 @@ def search_song(song_name, selected_tab):
         df = populate_df(type, song_name)
 
         display_two_tables(df)
+
+    elif selected_tab == "Display Media Map":
+        st.error("Sorry, unable to produce a Media Map for songs")
 
     elif selected_tab == "Search Effectiveness Bar Chart":
         df = populate_df(type, song_name)
@@ -102,10 +156,10 @@ def main():
     search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
 
     st.sidebar.subheader("Search Options")
-    selected_tab = st.sidebar.radio("Select Tab", ["Filtered Data", "Raw MusicBrainz API Data", "Search Effectiveness Bar Chart"])
+    selected_tab = st.sidebar.radio("Select Tab", ["Filtered Data", "Raw MusicBrainz API Data","Display Media Map", "Search Effectiveness Bar Chart"])
     search = st.button("Search") #The button is just for design so users feel comfortable and know the next steps after inputting text.
 
-    if (selected_tab == "Raw MusicBrainz API Data" or selected_tab ==  "Search Effectiveness Bar Chart"):
+    if (selected_tab == "Raw MusicBrainz API Data" or selected_tab ==  "Search Effectiveness Bar Chart" or selected_tab ==  "Display Media Map"):
         if search_query: # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
             if search_type == "Artist":
                 search_artist(search_query, selected_tab)
@@ -123,7 +177,6 @@ def main():
                 df = populate_df('release', search_query)
             elif search_type == "Song":
                 df = populate_df('recording', search_query)
-
 
         selected_options = st.multiselect('Select Columns to be Displayed', options=df.columns)
 
