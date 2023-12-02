@@ -41,6 +41,7 @@ def display_two_tables(df):
     if enable_table:
         st.subheader("Static table of the data")
         st.table(df)
+        st.success("Here is your static table displaying expanded nested objects.")
 
 def gen_score_chart(df):
     # Extract the "score" values
@@ -55,6 +56,21 @@ def gen_score_chart(df):
     st.subheader("Effectiveness Bar Chart")
     st.plotly_chart(fig)
     st.caption("How effective the search result is to the desired term")
+
+def Generate_Scatterplot(df, num_results):
+
+    if df is not None:
+        # Extract the "length" values
+        lengths = df['length']
+
+        # Create a scatterplot of song lengths
+        fig = px.scatter(x=range(num_results), y=lengths[:num_results],
+                         labels={'x': 'Entry Number', 'y': 'Song Length'})
+        st.subheader(f"Song Length (In Milliseconds) Scatterplot - Showing {num_results} results")
+        st.plotly_chart(fig)
+        st.success("See above your Scatterplot based on your search parameters")
+    else:
+        st.warning("No data available for the selected song")
 
 def gen_media_map(df):
     country_coordinates = {
@@ -96,6 +112,7 @@ def gen_media_map(df):
             new_df = pd.concat([new_df, new_row], ignore_index=True)
 
     st.map(new_df)
+    st.success("Please see your requested Media Map displayed above!")
 
 def search_artist(artist_name, selected_tab):
     type = "artist"
@@ -113,6 +130,7 @@ def search_artist(artist_name, selected_tab):
         df = populate_df(type, artist_name)
 
         gen_score_chart(df)
+        st.success("See Search Effectiveness results above!")
 
 def search_album(album_name, selected_tab):
     type = "release"
@@ -130,6 +148,7 @@ def search_album(album_name, selected_tab):
         df = populate_df(type, album_name)
 
         gen_score_chart(df)
+        st.success("See Search Effectiveness results above!")
 
 def search_song(song_name, selected_tab):
     type = "recording"
@@ -145,10 +164,7 @@ def search_song(song_name, selected_tab):
         df = populate_df(type, song_name)
 
         gen_score_chart(df)
-
-    elif selected_tab == "Length of songs":
-        # Add logic for filtered data
-        pass
+        st.success("See Search Effectiveness results above!")
 
 def main():
     st.title("ParaMusic")
@@ -185,5 +201,16 @@ def main():
 
         if selected_options:
             display_two_tables(filtered_df)
+            
+    if (selected_tab == "Song Length Scatterplot"):
+        if search_query:  # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
+            if search_type == "Artist":
+                st.error("Scatterplot does not work on Artist Names, please set search type to song")
+            elif search_type == "Album":
+                st.error("Scatterplot does not work on Artist Names, please set search type to song")
+            elif search_type == "Song":
+                df = populate_df('recording', search_query)
+                num_results = st.slider("Select the number of results to display", 1, len(df), len(df))
+                Generate_Scatterplot(df, num_results)
 
 main()
