@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import streamlit as st
 from streamlit_option_menu import option_menu #pip install streamlit_option_menu
+from streamlit_extras.stylable_container import stylable_container #pip install streamlit-extras
 import plotly.express as px
 
 base_url = "https://musicbrainz.org/ws/2/"
@@ -221,15 +222,7 @@ def search_song(song_name, selected_tab):
 def main():
     st.title("ParaMusic")
     # horizontal menu
-    selected_tab = option_menu("Main Menu", ["Filtered Data", "Raw MusicBrainz API Data", "Display Media Map", "Search Effectiveness Bar Chart", "Song Length Scatterplot"],
-                               menu_icon="menu-button-wide", default_index=0, orientation="horizontal",
-                               styles={
-                                    "container": {"padding": "0!important"},
-                                    "icon": {"font-size": "0px"},
-                                    "nav-link": {"font-size": "15px", "text-align": "center", "margin":"0px", "--hover-color": "#FF474C"},
-                                    "nav-link-selected": {"background-color": "red"},
-    })
-
+    selected_tab = st.radio("Select Tab", ["Filtered Data", "Raw MusicBrainz API Data", "Display Media Map", "Search Effectiveness Bar Chart", "Song Length Scatterplot"], horizontal=True)
     search_query = st.text_input("Enter a song, album, or artist name")
     search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
     search = st.button("Search")  # The button is just for design so users feel comfortable and know the next steps after inputting text.
