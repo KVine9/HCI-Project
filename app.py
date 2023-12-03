@@ -1,10 +1,11 @@
 import requests
 import pandas as pd
 import streamlit as st
-from streamlit_option_menu import option_menu
+from streamlit_option_menu import option_menu #pip install streamlit_option_menu
 import plotly.express as px
 
 base_url = "https://musicbrainz.org/ws/2/"
+
 
 def make_request(search_url, params):
     response = requests.get(search_url, params=params)
@@ -14,52 +15,56 @@ def make_request(search_url, params):
         st.error(f"Error: {response.status_code}")
         return None
 
+
 def create_df(results, result_type):
     if results and result_type in results:
         data = results[result_type]
         if data:
             df = pd.json_normalize(data)
-            #df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x) #Remove extra whitespace but does not work on nested objects.
-            return(df)
+            # df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x) #Remove extra whitespace but does not work on nested objects.
+            return (df)
         else:
             st.warning(f"No {result_type} found.")
     else:
         st.warning(f"No {result_type} found.")
+
 
 def populate_df(type, media_name):
     search_url = f"{base_url}{type}/"
     params = {f'query': {media_name}, 'fmt': 'json'}
     results = make_request(search_url, params)
     df = create_df(results, f'{type}s')
-    return(df)
+    return (df)
+
 
 def display_two_tables(df):
     st.subheader("Interactive data table ")
     st.dataframe(df)
+    st.success("See your requested interactive table above!")
 
     enable_table = st.checkbox('Do you want a static table?')
     st.caption("(A static table includes expanded nested objects)")
     if enable_table:
         st.subheader("Static table of the data")
         st.table(df)
-        st.success("Here is your static table displaying expanded nested objects.")
+        st.success("See your requested static table displaying expanded nested objects above!")
 
 def gen_score_chart(df):
     # Extract the "score" values
     scores = df['score']
 
     # Create a table with the scores
-    table_data = {'Index': range(0, len(scores)), 'Score (in %)': scores}
+    table_data = {'Entry Number': range(0, len(scores)), 'Score (in %)': scores}
     score_table = pd.DataFrame(table_data)
 
     # Create a bar table
-    fig = px.bar(score_table, x="Index", y="Score (in %)")
+    fig = px.bar(score_table, x="Entry Number", y="Score (in %)")
     st.subheader("Effectiveness Bar Chart")
     st.plotly_chart(fig)
     st.caption("How effective the search result is to the desired term")
+    st.success("See your requested Search Effectiveness results above!")
 
 def Generate_Scatterplot(df, num_results):
-
     if df is not None:
         # Extract the "length" values
         lengths = df['length']
@@ -67,9 +72,10 @@ def Generate_Scatterplot(df, num_results):
         # Create a scatterplot of song lengths
         fig = px.scatter(x=range(num_results), y=lengths[:num_results],
                          labels={'x': 'Entry Number', 'y': 'Song Length'})
-        st.subheader(f"Song Length (In Milliseconds) Scatterplot - Showing {num_results} results")
+        st.subheader(f"Song Length Scatterplot ({num_results} results)")
         st.plotly_chart(fig)
-        st.success("See above your Scatterplot based on your search parameters")
+        st.caption(f"Displays the song length for each entry in milliseconds. (Divide the milliseconds by 1000 to get seconds)")
+        st.success("See your requested Scatterplot above!")
     else:
         st.warning("No data available for the selected song")
 
@@ -112,100 +118,16 @@ def gen_media_map(df):
             new_row = pd.DataFrame([[country_name, latitude, longitude]], columns=['country', 'latitude', 'longitude'])
             new_df = pd.concat([new_df, new_row], ignore_index=True)
 
+    st.subheader("Media Map")
     st.map(new_df)
-    st.success("Please see your requested Media Map displayed above!")
+    st.caption("Shows the different entries' country origin")
+    st.success("See your requested Media Map above!")
 
 def search_artist(artist_name, selected_tab):
     type = "artist"
-    if selected_tab == "Raw MusicBrainz API Data":
-        df = populate_df(type, artist_name)
 
-        display_two_tables(df)
-
-    elif selected_tab == "Display Media Map":
-        df = populate_df(type, artist_name)
-
-        gen_media_map(df)
-
-    elif selected_tab == "Search Effectiveness Bar Chart":
-        df = populate_df(type, artist_name)
-
-        gen_score_chart(df)
-        st.success("See Search Effectiveness results above!")
-
-def search_album(album_name, selected_tab):
-    type = "release"
-    if selected_tab == "Raw MusicBrainz API Data":
-        df = populate_df(type, album_name)
-
-        display_two_tables(df)
-
-    elif selected_tab == "Display Media Map":
-        df = populate_df(type, album_name)
-
-        gen_media_map(df)
-
-    elif selected_tab == "Search Effectiveness Bar Chart":
-        df = populate_df(type, album_name)
-
-        gen_score_chart(df)
-        st.success("See Search Effectiveness results above!")
-
-def search_song(song_name, selected_tab):
-    type = "recording"
-    if selected_tab == "Raw MusicBrainz API Data":
-        df = populate_df(type, song_name)
-
-        display_two_tables(df)
-
-    elif selected_tab == "Display Media Map":
-        st.error("Sorry, unable to produce a Media Map for songs")
-
-    elif selected_tab == "Search Effectiveness Bar Chart":
-        df = populate_df(type, song_name)
-
-        gen_score_chart(df)
-        st.success("See Search Effectiveness results above!")
-
-def main():
-    st.title("ParaMusic")
-    search_query = st.text_input("Enter a song, album, or artist name")
-    search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
-
-     with st.sidebar:
-         # Sidebar customization -- Let's try doing it horizontal if possible? If not we can use CSS styling to make it look better
-        selected_tab = option_menu(
-            menu_title="Main Menu",
-            options=["Filtered Data", "Raw MusicBrainz API Data","Display Media Map", "Search Effectiveness Bar Chart", "Song Length Scatterplot"],
-            default_index=0,
-            styles={
-                "container": {"padding": "0!important", "background-color": "#8a9a5b"},
-                "icon": {"color": "black", "font-size": "20px"},
-                "nav-link": {"font-size": "25px", "text-align": "left", "margin": "5px", "--hover-color": "#eee"},
-                "nav-link-selected": {"background-color": "grey"},
-            }
-        )
-
-    search = st.button("Search") #The button is just for design so users feel comfortable and know the next steps after inputting text.
-
-    if (selected_tab == "Raw MusicBrainz API Data" or selected_tab ==  "Search Effectiveness Bar Chart" or selected_tab ==  "Display Media Map"):
-        if search_query: # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
-            if search_type == "Artist":
-                search_artist(search_query, selected_tab)
-            elif search_type == "Album":
-                search_album(search_query, selected_tab)
-            elif search_type == "Song":
-                search_song(search_query, selected_tab)
-
-    df = pd.DataFrame()
     if (selected_tab == "Filtered Data"):
-        if search_query: # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
-            if search_type == "Artist":
-                df = populate_df('artist', search_query)
-            elif search_type == "Album":
-                df = populate_df('release', search_query)
-            elif search_type == "Song":
-                df = populate_df('recording', search_query)
+        df = populate_df(type, artist_name)
 
         selected_options = st.multiselect('Select Columns to be Displayed', options=df.columns)
 
@@ -214,16 +136,110 @@ def main():
 
         if selected_options:
             display_two_tables(filtered_df)
-            
-    if (selected_tab == "Song Length Scatterplot"):
-        if search_query:  # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
-            if search_type == "Artist":
-                st.error("Scatterplot does not work on Artist Names, please set search type to song")
-            elif search_type == "Album":
-                st.error("Scatterplot does not work on Album Names, please set search type to song")
-            elif search_type == "Song":
-                df = populate_df('recording', search_query)
-                num_results = st.slider("Select the number of results to display", 1, len(df), len(df))
-                Generate_Scatterplot(df, num_results)
+
+    if selected_tab == "Raw MusicBrainz API Data":
+        df = populate_df(type, artist_name)
+
+        display_two_tables(df)
+
+    elif selected_tab == "Display Media Map":
+        df = populate_df(type, artist_name)
+
+        gen_media_map(df)
+
+    elif selected_tab == "Search Effectiveness Bar Chart":
+        df = populate_df(type, artist_name)
+
+        gen_score_chart(df)
+    elif selected_tab == "Song Length Scatterplot":
+        st.error("Scatterplot does not work on Artist Names, please set search type to song")
+
+def search_album(album_name, selected_tab):
+    type = "release"
+
+    if (selected_tab == "Filtered Data"):
+        df = populate_df(type, album_name)
+
+        selected_options = st.multiselect('Select Columns to be Displayed', options=df.columns)
+
+        # Filter the dataframe based on the selected options
+        filtered_df = df[selected_options]
+
+        if selected_options:
+            display_two_tables(filtered_df)
+
+    if selected_tab == "Raw MusicBrainz API Data":
+        df = populate_df(type, album_name)
+
+        display_two_tables(df)
+
+    elif selected_tab == "Display Media Map":
+        df = populate_df(type, album_name)
+
+        gen_media_map(df)
+
+    elif selected_tab == "Search Effectiveness Bar Chart":
+        df = populate_df(type, album_name)
+
+        gen_score_chart(df)
+
+    elif selected_tab == "Song Length Scatterplot":
+        st.error("Scatterplot does not work on Album Names, please set search type to song")
+
+def search_song(song_name, selected_tab):
+    type = "recording"
+
+    if (selected_tab == "Filtered Data"):
+        df = populate_df(type, song_name)
+
+        selected_options = st.multiselect('Select Columns to be Displayed', options=df.columns)
+
+        # Filter the dataframe based on the selected options
+        filtered_df = df[selected_options]
+
+        if selected_options:
+            display_two_tables(filtered_df)
+
+    if selected_tab == "Raw MusicBrainz API Data":
+        df = populate_df(type, song_name)
+
+        display_two_tables(df)
+
+    elif selected_tab == "Display Media Map":
+        st.error("Media Map does not work for songs, please choose another search type")
+
+    elif selected_tab == "Search Effectiveness Bar Chart":
+        df = populate_df(type, song_name)
+
+        gen_score_chart(df)
+
+    elif selected_tab == "Song Length Scatterplot":
+        df = populate_df('recording', song_name)
+        num_results = st.slider("Select the number of results to display", 1, len(df), len(df))
+        Generate_Scatterplot(df, num_results)
+
+def main():
+    st.title("ParaMusic")
+    # horizontal menu
+    selected_tab = option_menu("Main Menu", ["Filtered Data", "Raw MusicBrainz API Data", "Display Media Map", "Search Effectiveness Bar Chart", "Song Length Scatterplot"],
+                               menu_icon="menu-button-wide", default_index=0, orientation="horizontal",
+                               styles={
+                                    "container": {"padding": "0!important"},
+                                    "icon": {"font-size": "0px"},
+                                    "nav-link": {"font-size": "15px", "text-align": "center", "margin":"0px", "--hover-color": "#FF474C"},
+                                    "nav-link-selected": {"background-color": "red"},
+    })
+
+    search_query = st.text_input("Enter a song, album, or artist name")
+    search_type = st.selectbox("Search Type", ["Song", "Album", "Artist"])
+    search = st.button("Search")  # The button is just for design so users feel comfortable and know the next steps after inputting text.
+
+    if search_query:  # It is faster to detect if there is any text_input. The submit button ensures they click out of the text box
+        if search_type == "Artist":
+            search_artist(search_query, selected_tab)
+        elif search_type == "Album":
+            search_album(search_query, selected_tab)
+        elif search_type == "Song":
+            search_song(search_query, selected_tab)
 
 main()
