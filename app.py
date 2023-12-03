@@ -1,8 +1,6 @@
 import requests
 import pandas as pd
 import streamlit as st
-from streamlit_option_menu import option_menu #pip install streamlit_option_menu
-from streamlit_extras.stylable_container import stylable_container #pip install streamlit-extras
 import plotly.express as px
 
 base_url = "https://musicbrainz.org/ws/2/"
